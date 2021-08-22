@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         super.onOptionsItemSelected(item);
         if (item.getItemId() == R.id.logout) {
+            getSharedPreferences("user", MODE_PRIVATE).edit().clear().apply();
             startActivity(new Intent(this, Login.class));
             finish();
         }
