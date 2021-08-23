@@ -1,6 +1,5 @@
 package com.izhar.ahcsportal;
 
-import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -8,7 +7,6 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,7 +31,10 @@ import com.izhar.ahcsportal.objects.MedicationObject;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 public class Medication extends Fragment {
@@ -59,33 +60,45 @@ public class Medication extends Fragment {
         recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         String url = API.host_ip + "get_medications/" + getContext().getSharedPreferences("user", Context.MODE_PRIVATE).getString("username", "null");
         RequestQueue requestQueue = Volley.newRequestQueue(getContext());
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void onResponse(String response) {
-                try {
-                    JSONArray jsonArray = new JSONArray(response);
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        JSONObject jsonObject = jsonArray.getJSONObject(i);
-                        String id, medication, dosage, description, start_date, end_date;
-                        id = jsonObject.getString("id");
-                        start_date = jsonObject.getString("start_date");
-                        end_date = jsonObject.getString("end_date");
-                        medication = jsonObject.getString("medication_name");
-                        dosage = jsonObject.getString("frequency_perday");
-                        description = jsonObject.getString("description");
-                        medications.add(new MedicationObject(id, medication, dosage, description, start_date, end_date));
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
+            try {
+                JSONArray jsonArray = new JSONArray(response);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    String id, medication, dosage, description, start_date, end_date;
+                    id = jsonObject.getString("id");
+                    start_date = jsonObject.getString("start_date");
+                    end_date = jsonObject.getString("end_date");
+                    medication = jsonObject.getString("medication_name");
+                    dosage = jsonObject.getString("frequency_perday");
+                    description = jsonObject.getString("description");
+                    medications.add(new MedicationObject(id, medication, dosage, description, start_date, end_date));
+                    String until = end_date.substring(0, end_date.indexOf('T'));
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    Date strDate = sdf.parse(until);
+                    if (requireContext().getSharedPreferences("medication", Context.MODE_PRIVATE).getString(medication, "not set").equalsIgnoreCase("not set")) {
+                        if (System.currentTimeMillis() < strDate.getTime()) {
+                            int freq = 24 / Integer.parseInt(dosage);
+                            Intent intent = new Intent(getContext(), MedicationNotification.class)
+                                    .putExtra("title", "Medication")
+                                    .putExtra("desc", "Take your " + medication + " medication");
+                            PendingIntent pendingIntent = PendingIntent.getBroadcast(getContext(), (int) System.currentTimeMillis(), intent, PendingIntent.FLAG_IMMUTABLE);
+                            AlarmManager alarmManager = (AlarmManager) getContext().getSystemService(Context.ALARM_SERVICE);
+                            alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, Calendar.getInstance().getTimeInMillis(), AlarmManager.INTERVAL_HOUR * freq, pendingIntent);
+                            requireContext().getSharedPreferences("medication", Context.MODE_PRIVATE).edit().putString(medication, "set").apply();
+
+                        }
                     }
-                    adapter = new MedicationAdapter(getContext(), medications);
-                    recycler.setAdapter(adapter);
-                    progress.setVisibility(View.GONE);
-                    if (medications.size() == 0) {
-                        no_medication.setVisibility(View.VISIBLE);
-                    }
-                } catch (Exception e) {
-                    Toast.makeText(getContext(), e.toString(), Toast.LENGTH_LONG).show();
-                    e.printStackTrace();
                 }
+                adapter = new MedicationAdapter(getContext(), medications);
+                recycler.setAdapter(adapter);
+                progress.setVisibility(View.GONE);
+                if (medications.size() == 0) {
+                    no_medication.setVisibility(View.VISIBLE);
+                }
+            } catch (Exception e) {
+                Toast.makeText(getContext(), e.toString(), Toast.LENGTH_LONG).show();
+                e.printStackTrace();
             }
         }, new Response.ErrorListener() {
             @Override
@@ -108,7 +121,7 @@ public class Medication extends Fragment {
             NotificationChannel channel = new NotificationChannel("medication_notification", name, importance);
             channel.setDescription(desc);
 
-            NotificationManager notificationManager = getContext().getSystemService(NotificationManager.class);
+            NotificationManager notificationManager = requireContext().getSystemService(NotificationManager.class);
             notificationManager.createNotificationChannel(channel);
         }
     }

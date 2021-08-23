@@ -1,4 +1,4 @@
- package com.izhar.ahcsportal.notification;
+package com.izhar.ahcsportal.notification;
 
 import android.app.Notification;
 import android.content.BroadcastReceiver;
@@ -10,19 +10,17 @@ import androidx.core.app.NotificationManagerCompat;
 
 import com.izhar.ahcsportal.R;
 
-public class MedicationNotification extends BroadcastReceiver {
+public class AppointmentNotification extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "medication_notification")
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "appointment_notification")
                 .setSmallIcon(R.drawable.notification)
-                .setContentTitle(intent.getExtras().getString("title"))
+                .setContentTitle("Appointment")
                 .setDefaults(Notification.DEFAULT_SOUND)
-                .setContentText("" + intent.getExtras().getString("desc"))
+                .setContentText(("Appointment name"))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
-
-        notificationManager.notify((int) System.currentTimeMillis(), builder.build());
-
+        notificationManager.notify(140, builder.build());
     }
 }

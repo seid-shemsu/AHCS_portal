@@ -7,7 +7,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Part;
 
 public interface API {
-    String host_ip = "http://192.168.43.108:8000/api/";
+    String host_ip = "http://192.168.137.35:8000/api/";
 
     @Multipart
     @POST("check/")
